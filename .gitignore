@@ -1,0 +1,21 @@
+# Compiled class files
+*.class
+
+# Log files
+*.log
+
+# BlueJ/VSCode/IntelliJ/Eclipse settings
+.vscode/
+.idea/
+*.iml
+bin/
+out/
+build/
+
+# Ignore large JDK files
+src/openJdk-25/lib/
+
+
+# Mac and Windows junk
+.DS_Store
+Thumbs.db
