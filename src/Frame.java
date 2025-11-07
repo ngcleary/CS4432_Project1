@@ -1,3 +1,5 @@
+import java.util.*;
+
 public class Frame {
     private char[] content;
     private Boolean dirty;
@@ -51,17 +53,24 @@ public class Frame {
 
     //return a specific record (string of 40 bytes) in the block given the record number (k)
     public String getRecord(int k){
-        int recStart = RECORD_SIZE - (RECORD_SIZE * k);
+        int recStart = (RECORD_SIZE * k) - RECORD_SIZE;
         char[] content = getContent();
-        char[] record = new char[4000];
-
-        //find the start of the record and save the next 39 bytes to record array
-        for(int i = 0; i < RECORD_SIZE; i++){
-            record[recStart] = content[i];
-            recStart++;
-        }
+        char[] record = Arrays.copyOfRange(content, recStart, recStart + 40);
+        
         //convert char array to string
         String contentString = new String(record);
         return contentString;
+    }
+
+    //take in record number and new content (40 bytes). set dirty byte (pin record??)
+    public void updateRecord(int k, String newRecordContent){
+         int recStart = (RECORD_SIZE * k) - RECORD_SIZE;
+         char[] content = getContent();
+         char[] FileContentArr = Arrays.copyOfRange(content, 0, FILE_SIZE);
+         char[] newRecordContentArr = newRecordContent.toCharArray();
+         System.arraycopy(newRecordContentArr, 0, FileContentArr, recStart, 40);
+
+         //set dirty flag
+         setDirty(true);
     }
 }
