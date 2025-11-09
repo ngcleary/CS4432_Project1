@@ -15,11 +15,13 @@ public class Frame {
     //     this.pinned = pinned;
     //     this.blockID = blockID;
     // }
-      public Frame(int blockID){
+
+    //set blockID to -1 to indicate frame is empty (no block in frame)
+    public Frame(){
         content = new char[4000];
         dirty = false;
         pinned = false;
-        this.blockID = blockID;
+        this.blockID = -1;
     }
 
     //getters and setters
@@ -53,9 +55,14 @@ public class Frame {
 
     //return a specific record (string of 40 bytes) in the block given the record number (k)
     public String getRecord(int k){
-        int recStart = (RECORD_SIZE * k) - RECORD_SIZE;
-        char[] content = getContent();
-        char[] record = Arrays.copyOfRange(content, recStart, recStart + 40);
+        //mod 100 to get range from 0 - 4000
+        int modk = k % 100;
+        int recStart = ((RECORD_SIZE * modk) - RECORD_SIZE);
+        // System.out.println("recstart: " + recStart);
+        char[] blockContent = getContent();
+        // System.out.println("blockContent: " + String.valueOf(blockContent));
+        char[] record = Arrays.copyOfRange(blockContent, recStart, recStart + 40);
+       
         
         //convert char array to string
         String contentString = new String(record);
