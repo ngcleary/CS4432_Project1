@@ -1,4 +1,5 @@
 import java.io.FileWriter;
+import java.io.FileReader;
 import java.io.IOException;
 
 public class BufferPool {
@@ -18,6 +19,14 @@ public class BufferPool {
 
     public Frame[] getSlots(){
         return slots;
+    }
+
+    public int getLastEvicted(){
+        return lastEvicted;
+    }
+
+    public void setLastEvicted(int lastEvicted){
+        this.lastEvicted = lastEvicted;
     }
 
     //search each slot in the bufferpool for blockid. return the slot number where the block is located, or -1 if not in bufferpool
@@ -43,12 +52,14 @@ public class BufferPool {
     //search buffer pool for empty frame (blockID = -1) and return slot number. if no empty frame call findEvict to get frame to evict
     public int findEmpty(){
         for(int i = 0; i < slots.length; i++){
+            System.out.println("slot block id: " + slots[i].getBlockID());
             if(slots[i].getBlockID() == -1){
                 return i;
             }
         }
-        //no empty frame found - find a frame to evict
+        //no empty frame found - find a frame to evict, evict and return empty frame number
         int emptyFrame = findEvict();
+        System.out.println("in find empty, slot to evict: " + emptyFrame);
         evict(emptyFrame);
         return emptyFrame;
     }
@@ -58,6 +69,7 @@ public class BufferPool {
         //no previous evictions - start at first frame and loop all
         if(lastEvicted == -1){
             for(int i = 0; i < slots.length; i++){
+                System.out.println("in find evict, checking pinned: " + slots[i].getPinned());
                 if(slots[i].getPinned() == false){
                     return i;
                 }
@@ -101,7 +113,29 @@ public class BufferPool {
         } catch (IOException e) {
             System.out.print(e.getMessage());
         }
-        
+    }
+    
+    public String readFromDisk(int readBlockID){
+        try {
+            char[] file = new char[4000];
+            int fileIndex = 0;
+            String diskBlock = "F" + readBlockID + ".txt";
+            FileReader fr = new FileReader(diskBlock);
+
+            int charInt;
+            while((charInt = fr.read()) != -1){
+                file[fileIndex] = (char) charInt;
+                fileIndex++;
+            }
+
+            //System.out.println("block from disk: " + String.valueOf(file));
+            return String.valueOf(file);
+
+        } catch (IOException e) {
+            System.out.print(e.getMessage());
+            return "IO error";
+
+        }
     }
 
     //print the content from record k from the file
@@ -110,9 +144,28 @@ public class BufferPool {
         int blockID = (int) Math.ceil(k / NUMBER_OF_RECORDS) + 1;
         int slotNumber = findBlock(blockID);
         if(slotNumber == -1){
-            //block is not in buffer
-            System.out.println("not in buffer");
-            return "not in buffer";
+            //block is not in buffer - find empty slot (or evict one)
+            int emptySlot = findEmpty();
+            //all frames are pinned - cannot evict
+            if(emptySlot == -1){
+                return "The corresponding block " + blockID + " cannot be accessed from disk because the memory buffers are full";
+            } 
+            //There is an empty frame - read block from disk and set frame metadata
+            else{
+                Frame frame = slots[emptySlot];
+                String diskBlock = readFromDisk(blockID);
+                char[] diskBlockContent = diskBlock.toCharArray();
+                frame.setContent(diskBlockContent);
+                frame.setBlockID(blockID);
+                frame.setDirty(false);
+
+                //get record and return
+                String recordContent = frame.getRecord(k);
+                System.out.println("Record " + k + " from block " + blockID + ": " + recordContent);
+                return recordContent;
+                
+            }
+            
         } else{
             //block is in buffer - return the record content
             String recordContent = slots[slotNumber].getRecord(k);
